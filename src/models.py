@@ -38,6 +38,7 @@ class User(db.Model):
 
     posts: Mapped[List["Post"]] = relationship(back_populates="user")
     comments: Mapped[List["Comment"]] = relationship(back_populates="author")
+    likes: Mapped[List["Like"]] = relationship(back_populates="user")
     following: Mapped[List["Follower"]] = relationship(
         foreign_keys=[Follower.user_from_id], back_populates="user_from")
     followers: Mapped[List["Follower"]] = relationship(
@@ -61,11 +62,13 @@ class Post(db.Model):
     user: Mapped["User"] = relationship(back_populates="posts")
     media: Mapped[List["Media"]] = relationship(back_populates="post")
     comments: Mapped[List["Comment"]] = relationship(back_populates="post")
+    likes: Mapped[List["Like"]] = relationship(back_populates="post")
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "likes": len(self.likes),
             "media": [m.serialize() for m in self.media],
         }
 
@@ -101,6 +104,21 @@ class Comment(db.Model):
             "id": self.id,
             "comment_text": self.comment_text,
             "author_id": self.author_id,
+            "post_id": self.post_id,
+        }
+
+
+class Like(db.Model):
+    # a user can like a post only once
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), primary_key=True)
+
+    user: Mapped["User"] = relationship(back_populates="likes")
+    post: Mapped["Post"] = relationship(back_populates="likes")
+
+    def serialize(self):
+        return {
+            "user_id": self.user_id,
             "post_id": self.post_id,
         }
 
