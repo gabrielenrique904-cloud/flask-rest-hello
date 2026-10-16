@@ -36,6 +36,8 @@ class User(db.Model):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    bio: Mapped[str] = mapped_column(String(150), nullable=True)
+    profile_picture: Mapped[str] = mapped_column(String(255), nullable=True)
 
     posts: Mapped[List["Post"]] = relationship(back_populates="user")
     comments: Mapped[List["Comment"]] = relationship(back_populates="author")
@@ -52,6 +54,8 @@ class User(db.Model):
             "firstname": self.firstname,
             "lastname": self.lastname,
             "email": self.email,
+            "bio": self.bio,
+            "profile_picture": self.profile_picture,
             # do not serialize the password, its a security breach
         }
 
