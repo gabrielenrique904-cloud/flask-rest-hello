@@ -1,7 +1,8 @@
 import enum
+from datetime import datetime, timezone
 from typing import List
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, ForeignKey, Enum, Text
+from sqlalchemy import String, Boolean, ForeignKey, Enum, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 db = SQLAlchemy()
@@ -58,6 +59,9 @@ class User(db.Model):
 class Post(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    caption: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     user: Mapped["User"] = relationship(back_populates="posts")
     media: Mapped[List["Media"]] = relationship(back_populates="post")
@@ -68,6 +72,8 @@ class Post(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "caption": self.caption,
+            "created_at": self.created_at.isoformat(),
             "likes": len(self.likes),
             "media": [m.serialize() for m in self.media],
         }
