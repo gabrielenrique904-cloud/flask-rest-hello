@@ -1,76 +1,119 @@
-<a href="https://www.breatheco.de"><img height="280" align="right" src="https://github.com/4GeeksAcademy/flask-rest-hello/blob/main/docs/assets/badge.png?raw=true"></a>
+# Modelo de Datos de Instagram
 
-# Flask Boilerplate for Junior Developers
+Modelo de base de datos que replica la estructura de Instagram, construido con **Python**, **Flask** y **SQLAlchemy**. Proyecto del bootcamp Full Stack de 4Geeks Academy.
 
-Create flask API's in minutes, [📹 watch the video tutorial](https://youtu.be/ORxQ-K3BzQA).
+![Diagrama UML del modelo](diagram.png)
 
-- [Extensive documentation here](https://start.4geeksacademy.com).
-- Integrated with Pipenv for package managing.
-- Fast deloyment to render.com or heroku with `$ pipenv run deploy`.
-- Use of `.env` file.
-- SQLAlchemy integration for database abstraction.
+## Tablas
 
-## 1) Installation
+Todos los modelos están en [`src/models.py`](src/models.py).
 
-This template installs itself in a few seconds if you open it for free with Codespaces (recommended) or Gitpod.
-Skip this installation steps and jump to step 2 if you decide to use any of those services.
+### User
+Usuarios de la plataforma.
 
-> Important: The boiplerplate is made for python 3.10 but you can change the `python_version` on the Pipfile.
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | Integer (PK) | Identificador único |
+| `username` | String(50), único | Nombre de usuario |
+| `firstname` | String(50), opcional | Nombre |
+| `lastname` | String(50), opcional | Apellido |
+| `email` | String(120), único | Correo electrónico |
+| `password` | String | Contraseña (nunca se serializa) |
+| `is_active` | Boolean | Si la cuenta está activa |
+| `bio` | String(150), opcional | Descripción del perfil |
+| `profile_picture` | String(255), opcional | URL de la foto de perfil |
 
-The following steps are automatically runned withing gitpod, if you are doing a local installation you have to do them manually:
+### Post
+Publicaciones de los usuarios.
 
-```sh
-pipenv install;
-psql -U root -c 'CREATE DATABASE example;'
-pipenv run init;
-pipenv run migrate;
-pipenv run upgrade;
-```
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | Integer (PK) | Identificador único |
+| `user_id` | Integer (FK → user) | Autor del post |
+| `caption` | Text, opcional | Texto de la publicación |
+| `created_at` | DateTime | Fecha de publicación (se asigna automáticamente) |
 
-> Note: Codespaces users can connect to psql by typing: `psql -h localhost -U gitpod example`
+### Media
+Fotos y vídeos de cada post (un post puede tener varios, como un carrusel).
 
-## 2) How to Start coding
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | Integer (PK) | Identificador único |
+| `type` | Enum (`image` / `video`) | Tipo de archivo |
+| `url` | String(255) | Enlace al archivo |
+| `post_id` | Integer (FK → post) | Post al que pertenece |
 
-There is an example API working with an example database. All your application code should be written inside the `./src/` folder.
+### Comment
+Comentarios en los posts.
 
-- src/main.py (it's where your endpoints should be coded)
-- src/models.py (your database tables and serialization logic)
-- src/utils.py (some reusable classes and functions)
-- src/admin.py (add your models to the admin and manage your data easily)
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | Integer (PK) | Identificador único |
+| `comment_text` | Text | Contenido del comentario |
+| `author_id` | Integer (FK → user) | Quién lo escribió |
+| `post_id` | Integer (FK → post) | En qué post está |
 
-For a more detailed explanation, look for the tutorial inside the `docs` folder.
+### Like
+"Me gusta" de los usuarios en los posts.
 
-## Remember to migrate every time you change your models
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `user_id` | Integer (PK, FK → user) | Quién dio like |
+| `post_id` | Integer (PK, FK → post) | A qué post |
 
-You have to migrate and upgrade the migrations for every update you make to your models:
+### Follower
+Quién sigue a quién.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `user_from_id` | Integer (PK, FK → user) | El usuario que sigue |
+| `user_to_id` | Integer (PK, FK → user) | El usuario seguido |
+
+## Relaciones
+
+| Relación | Tipo | Implementación |
+|---|---|---|
+| User → Post | Uno a muchos | `post.user_id` |
+| Post → Media | Uno a muchos | `media.post_id` |
+| User → Comment | Uno a muchos | `comment.author_id` |
+| Post → Comment | Uno a muchos | `comment.post_id` |
+| User ↔ Post (likes) | Muchos a muchos | Tabla intermedia `Like` |
+| User ↔ User (seguidores) | Muchos a muchos autorreferencial | Tabla intermedia `Follower` |
+
+- **Uno a muchos:** la tabla "hija" guarda una clave foránea hacia la "padre". Por ejemplo, cada post guarda el `user_id` de su autor, y desde un usuario se accede a sus posts con `user.posts`.
+- **Like:** usa una clave primaria compuesta (`user_id` + `post_id`), así que un usuario no puede dar like dos veces al mismo post.
+- **Follower:** las dos columnas apuntan a la tabla `user`. Si el usuario 1 sigue al 2 se guarda `(1, 2)`; que el 2 siga al 1 es otra fila distinta, igual que en Instagram. Desde un usuario se accede a `user.following` (a quién sigue) y `user.followers` (quién le sigue).
+
+> Nota: en el diagrama, las líneas de `follower` aparecen como "1 – 1" porque sus claves foráneas también forman la clave primaria. Conceptualmente la relación es muchos a muchos.
+
+## Instalación y uso
 
 ```bash
-$ pipenv run migrate # (to make the migrations)
-$ pipenv run upgrade  # (to update your databse with the migrations)
+pipenv install    # instalar dependencias
+pipenv shell      # entrar al entorno virtual
 ```
 
-## Generate a database diagram
-
-If you want to visualize the structure of your database in the form of a diagram, you can generate it with the following command:
+### Generar el diagrama
 
 ```bash
-$ pipenv run diagram
+python src/models.py
 ```
 
-This command will generate a file with the database diagram based on the models defined in `src/models.py`.
+Esto genera (o actualiza) el archivo `diagram.png` en la raíz del proyecto a partir de los modelos definidos en `src/models.py`.
 
-## Check your API live
+### Migraciones
 
-1. Once you run the `pipenv run start` command your API will start running live and you can open it by clicking in the "ports" tab and then clicking "open browser".
+Cada vez que cambies los modelos:
 
-> ✋ If you are working on a coding cloud like [Codespaces](https://docs.github.com/en/codespaces/developing-in-codespaces/forwarding-ports-in-your-codespace#sharing-a-port) or [Gitpod](https://www.gitpod.io/docs/configure/workspaces/ports#configure-port-visibility) make sure that your forwared port is public.
+```bash
+pipenv run migrate   # crear la migración
+pipenv run upgrade   # aplicarla a la base de datos
+```
 
-## Publish/Deploy your website!
+## Tecnologías
 
-This boilerplate it's 100% read to deploy with Render.com and Herkou in a matter of minutes. Please read the [official documentation about it](https://start.4geeksacademy.com/deploy).
-
-### Contributors
-
-This template was built as part of the 4Geeks Academy [Coding Bootcamp](https://4geeksacademy.com/us/coding-bootcamp) by [Alejandro Sanchez](https://twitter.com/alesanchezr) and many other contributors. Find out more about our [Full Stack Developer Course](https://4geeksacademy.com/us/coding-bootcamps/part-time-full-stack-developer), and [Data Science Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning).
-
-You can find other templates and resources like this at the [school github page](https://github.com/4geeksacademy/).
+- Python 3
+- Flask
+- SQLAlchemy / Flask-SQLAlchemy
+- Flask-Admin
+- ERAlchemy2 (generación del diagrama)
